@@ -243,6 +243,7 @@ if os.path.isfile(cfg_path):
     numThreads = None
     if GPU_NAME == "Tesla T4":
         THREADS_DICT = {
+            ("CUDA", "28"): "9",
             ("CUDA", "18"): "18",
             ("CUDA", "60"): "8",
             ("CUDA", "40"): "10",
@@ -251,6 +252,7 @@ if os.path.isfile(cfg_path):
             ("CUDA", "15"): "18",
             ("CUDA", "10"): "22",
             ("CUDA", "6"): "28",
+            ("TENSORRT", "28"): "13",
             ("TENSORRT", "18"): "18",
             ("TENSORRT", "60"): "10",
             ("TENSORRT", "40"): "12",
