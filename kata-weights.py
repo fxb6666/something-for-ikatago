@@ -214,7 +214,7 @@ if BLOCK:
     base_name = f'{BLOCK}b'
 else:
     base_name = 'my_model'
-ext = get_group1("(bin\.gz|txt\.gz)$", filename)
+ext = get_group1(r"(bin\.gz|txt\.gz)$", filename)
 if ext == None:
     ext = "gz"
 model_path = f'./data/weights/{base_name}.{ext}'
