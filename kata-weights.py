@@ -9,7 +9,7 @@
 一、基本参数
 1. 参数示例：AUTO，NEW，18b，b18，18b-new，18b8526，18bs8526，b18s8526。仅以18b举例，其它块（block）数同理。
 2. “AUTO”和“NEW”分别可以下载最强权重和最新权重。
-3. 仅指定块数时将下载对应块数的最强权重（在elo减去误差值得到的结果中选择最大值）。
+3. 仅指定块数时将下载对应块数的最强权重（elo下限值最大）。
 4. 块数后附加“-new”将下载指定块数中的最新权重。
 5. 块数后附加s和采样数可下载指定权重。
 
@@ -68,16 +68,17 @@ def get_page_number(pattern):
     infos = json.loads(get_page(url))
     numModels = len(infos)
     total_numPages = (numModels - 1) // 20 + 1
-    model_num = 1
+    model_num = 0
+    page_number = ""
     for info in infos:
+        model_num = model_num + 1
         model_name = info['name']
         if re.search(pattern, model_name, re.IGNORECASE):
             page_number = (model_num - 1) // 20 + 1
             break
-        if numModels == model_num:
-            print(f'ERROR: No weights matching "{pattern}" were found.')
-            sys.exit(1)
-        model_num = model_num + 1
+    if not page_number:
+        print(f'ERROR: No weights matching "{pattern}" were found.')
+        sys.exit(1)
     return page_number, total_numPages
 
 model_url = None
@@ -213,7 +214,7 @@ if BLOCK:
     base_name = f'{BLOCK}b'
 else:
     base_name = 'my_model'
-ext = get_group1("(bin.gz|txt.gz)", filename)
+ext = get_group1("(bin\.gz|txt\.gz)$", filename)
 if ext == None:
     ext = "gz"
 model_path = f'./data/weights/{base_name}.{ext}'
@@ -241,6 +242,7 @@ if os.path.isfile(cfg_path):
     except:
         GPU_NAME = None
     numThreads = None
+    THREADS_DICT = {}
     if GPU_NAME == "Tesla T4":
         THREADS_DICT = {
             ("CUDA", "28"): "9",
@@ -262,6 +264,6 @@ if os.path.isfile(cfg_path):
             ("TENSORRT", "10"): "23",
             ("TENSORRT", "6"): "28"
         }
-        numThreads = THREADS_DICT.get((KATAGO_BACKEND, BLOCK), None)
+    numThreads = THREADS_DICT.get((KATAGO_BACKEND, BLOCK), None)
     if numThreads is not None:
         os.system(rf'sed -i -E "s/^(numSearchThreads =).*/\1 {numThreads}/" {cfg_path}')
