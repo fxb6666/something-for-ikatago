@@ -157,7 +157,7 @@ if model_url == None:
             if re.search(pattern, model_name, re.IGNORECASE) == None:
                 continue
             i = i + 1
-            if i > 30:
+            if i > 50:
                 break
             if use_new or regexp_mode or SAMPLE:
                 model_url = columns[3].xpath('.//a/@href')[0] if columns[3].xpath('.//a/@href') else None
