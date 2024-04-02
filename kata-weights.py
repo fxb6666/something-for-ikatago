@@ -16,6 +16,7 @@
 二、特殊参数（加引号）
 1. 支持正则表达式匹配特殊权重名称，表达式需要位于两条斜线中间，例如："/b18.*uec/"。如果有多个结果，只下载最新的一个。
 2. 支持以 http/https 开头的下载链接。
+3. 支持谷歌云端硬盘单个文件的分享链接和ID。 如果只有ID部分，需要以 id= 开头。
 '''
 
 import urllib.request
@@ -85,7 +86,17 @@ model_url = None
 regexp_mode = False
 
 # 特殊参数部分
-if re.search('^http', WEIGHT_FILE, re.IGNORECASE):
+if re.search('^http.*google\.com|^id=', WEIGHT_FILE, re.IGNORECASE) is not None:
+    patterns = ['id=([^&/?]*)', '/file.*/d/([^&/?]*)']
+    for pattern in patterns:
+        file_id = get_group1(pattern, WEIGHT_FILE)
+        if file_id is not None:
+            break
+    if file_id == None:
+        print(f'ERROR: No match found for the file ID.')
+        sys.exit(1)
+    model_url = f'https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0'
+elif re.search('^http', WEIGHT_FILE, re.IGNORECASE):
     model_url = WEIGHT_FILE
 elif re.search('^/.*/$', WEIGHT_FILE, re.IGNORECASE):
     regexp_mode = True
