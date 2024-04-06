@@ -86,7 +86,7 @@ model_url = None
 regexp_mode = False
 
 # 特殊参数部分
-if re.search('^http.*google\.com|^id=', WEIGHT_FILE, re.IGNORECASE) is not None:
+if re.search(r'drive\.google\.com|^id=', WEIGHT_FILE, re.IGNORECASE) is not None:
     patterns = ['id=([^&/?]*)', '/file.*/d/([^&/?]*)']
     for pattern in patterns:
         file_id = get_group1(pattern, WEIGHT_FILE)
