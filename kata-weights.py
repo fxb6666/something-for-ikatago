@@ -95,7 +95,7 @@ if re.search(r'drive\.google\.com|^id=', WEIGHT_FILE, re.IGNORECASE) is not None
     if file_id == None:
         print(f'ERROR: No match found for the file ID.')
         sys.exit(1)
-    model_url = f'https://drive.usercontent.google.com/download?id={file_id}&export=download&authuser=0'
+    model_url = f'https://drive.usercontent.google.com/download?id={file_id}&confirm=t'
 elif re.search('^http', WEIGHT_FILE, re.IGNORECASE):
     model_url = WEIGHT_FILE
 elif re.search('^/.*/$', WEIGHT_FILE, re.IGNORECASE):
