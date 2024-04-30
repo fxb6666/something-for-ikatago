@@ -50,18 +50,19 @@ def get_group1(pattern, string):
         re_result = re_result.group(1)
     return re_result
 
-def get_page(url):
+def get_page(url, get_content=True):
     for i in range(3):
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=5) as response:
-                content = response.read()
-                break
+                if get_content:
+                    return response.read()
+                else:
+                    return response
         except:
             if i == 2:
                 print('ERROR: Cannot connect to the server at this time')
                 raise
-    return content
 
 def get_page_number(pattern):
     # 获取第一个匹配的模型所在页数
@@ -221,6 +222,16 @@ print(f'model_url: {model_url}')
 filename = os.path.basename(model_url).split("?")[0]
 if BLOCK == None:
     BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", filename)
+    if BLOCK == None:
+        # 获取远程文件名
+        response = get_page(model_url, False)
+        content_disposition = response.headers.get('Content-Disposition')
+        if content_disposition:
+            re_result = get_group1("filename=[\"']?([^\"']+)", content_disposition)
+            if re_result:
+                filename = re_result
+                print(f"model_name: {filename}")
+                BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", filename)
 if BLOCK:
     base_name = f'{BLOCK}b'
 else:
