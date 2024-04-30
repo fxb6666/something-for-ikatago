@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-功能：此脚本可下载KataGo官网的所有权重文件，并支持使用第三方下载链接。为“CUDA”和“TENSORRT”引擎使用6b至18b的权重预设了适合于“Tesla T4”的最佳线程。
+功能：此脚本可下载KataGo官网的所有权重文件，并支持使用第三方下载链接。为“CUDA”和“TENSORRT”引擎使用6b至28b的权重预设了适合于“Tesla T4”的最佳线程。
 提示：'lxml'模块可用时效率更高。
 注意：当存在“./data/weights”目录时，将无提示直接下载文件到此目录，同名文件会被覆盖。
 
@@ -263,7 +263,6 @@ if os.path.isfile(cfg_path):
         GPU_NAME = subprocess.check_output(command, shell=True, universal_newlines=True, stderr=subprocess.DEVNULL).strip()
     except:
         GPU_NAME = None
-    numThreads = None
     THREADS_DICT = {}
     if GPU_NAME == "Tesla T4":
         THREADS_DICT = {
@@ -289,3 +288,4 @@ if os.path.isfile(cfg_path):
     numThreads = THREADS_DICT.get((KATAGO_BACKEND, BLOCK), None)
     if numThreads is not None:
         os.system(rf'sed -i -E "s/^(numSearchThreads =).*/\1 {numThreads}/" {cfg_path}')
+    os.system(f'sed -n "/^numSearchThreads/p" {cfg_path}')
