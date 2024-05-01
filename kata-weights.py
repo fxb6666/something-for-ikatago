@@ -59,6 +59,9 @@ def get_page(url, get_content=True):
                     return response.read()
                 else:
                     return response
+        except KeyboardInterrupt:
+            print("\nInterrupted by user.")
+            sys.exit(1)
         except:
             if i == 2:
                 print('ERROR: Cannot connect to the server at this time')
