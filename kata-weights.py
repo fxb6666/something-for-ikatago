@@ -47,13 +47,15 @@ else:
 def get_group1(pattern, string):
     re_result = re.search(pattern, string, re.IGNORECASE)
     if re_result and re_result.group(1):
-        re_result = re_result.group(1)
-    return re_result
+        return re_result.group(1)
+    else:
+        return None
 
 def get_page(url, get_content=True):
     for i in range(3):
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            user_agent = "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+            req = urllib.request.Request(url, headers={'User-Agent': user_agent})
             with urllib.request.urlopen(req, timeout=5) as response:
                 if get_content:
                     return response.read()
@@ -166,7 +168,7 @@ if model_url == None:
         # 遍历表格行
         for row in table.xpath('.//tr'):
             columns = row.xpath('.//td')
-            if not len(columns) == 5:
+            if not len(columns):
                 continue
             model_name = columns[0].text.strip()
             if re.search(pattern, model_name, re.IGNORECASE) == None:
@@ -180,7 +182,7 @@ if model_url == None:
             elo_rating = columns[2].text.split()
             elo = float(elo_rating[0])
             uncertainty = float(elo_rating[2])
-            lower_elo = elo - uncertainty
+            lower_elo = round(elo - uncertainty, 1)
             if lower_elo < max_lower_elo:
                 continue
             max_lower_elo = lower_elo
