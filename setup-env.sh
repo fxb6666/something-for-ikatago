@@ -58,17 +58,12 @@ cp -r ./opencltuning /root/.katago/
 wget -nv "https://raw.githubusercontent.com/fxb6666/something-for-ikatago/main/kata-weights.py" -O kata-weights.py
 python3 ./kata-weights.py "$WEIGHT_FILE" "$KATAGO_BACKEND"
 
-cp /root/.katago/opencltuning/tune6_gpuTeslaK80_x19_y19_c256_mv8.txt /root/.katago/opencltuning/tune6_gpuTeslaK80_x19_y19_c256_mv10.txt
-cp /root/.katago/opencltuning/tune6_gpuTeslaP100PCIE16GB_x19_y19_c256_mv8.txt /root/.katago/opencltuning/tune6_gpuTeslaP100PCIE16GB_x19_y19_c256_mv10.txt
-cp /root/.katago/opencltuning/tune6_gpuTeslaP100PCIE16GB_x19_y19_c384_mv8.txt /root/.katago/opencltuning/tune6_gpuTeslaP100PCIE16GB_x19_y19_c384_mv10.txt
-cp /root/.katago/opencltuning/tune8_gpuTeslaK80_x19_y19_c256_mv8.txt /root/.katago/opencltuning/tune8_gpuTeslaK80_x19_y19_c256_mv10.txt
-cp /root/.katago/opencltuning/tune8_gpuTeslaP100PCIE16GB_x19_y19_c256_mv8.txt /root/.katago/opencltuning/tune8_gpuTeslaP100PCIE16GB_x19_y19_c256_mv10.txt
-
 if [ "$KATAGO_BACKEND" == "TENSORRT" ]
 then
-  #  apt-get install libnvinfer8=8.2.0-1+cuda11.4
-  wget -q "https://github.com/fxb6666/something-for-ikatago/releases/download/v1.0.0/timing-caches.zip" -O timing-caches.zip
-  unzip -qod / timing-caches.zip
+  if [ "$GPU_NAME" == "TeslaT4" ]; then
+    wget -q "https://github.com/fxb6666/something-for-ikatago/releases/download/v1.0.0/timing-caches.zip" -O timing-caches.zip
+    mkdir -p ~/.katago/trtcache
+    unzip -qojd ~/.katago/trtcache timing-caches.zip
   apt-get install libnvinfer8=8.6.1.6-1+cuda12.0
 fi
 
