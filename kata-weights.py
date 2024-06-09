@@ -47,13 +47,15 @@ else:
 def get_group1(pattern, string):
     re_result = re.search(pattern, string, re.IGNORECASE)
     if re_result and re_result.group(1):
-        re_result = re_result.group(1)
-    return re_result
+        return re_result.group(1)
+    else:
+        return None
 
 def get_page(url, get_content=True):
     for i in range(3):
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            user_agent = "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+            req = urllib.request.Request(url, headers={'User-Agent': user_agent})
             with urllib.request.urlopen(req, timeout=5) as response:
                 if get_content:
                     return response.read()
@@ -166,7 +168,7 @@ if model_url == None:
         # 遍历表格行
         for row in table.xpath('.//tr'):
             columns = row.xpath('.//td')
-            if not len(columns) == 5:
+            if not len(columns):
                 continue
             model_name = columns[0].text.strip()
             if re.search(pattern, model_name, re.IGNORECASE) == None:
@@ -180,7 +182,7 @@ if model_url == None:
             elo_rating = columns[2].text.split()
             elo = float(elo_rating[0])
             uncertainty = float(elo_rating[2])
-            lower_elo = elo - uncertainty
+            lower_elo = round(elo - uncertainty, 1)
             if lower_elo < max_lower_elo:
                 continue
             max_lower_elo = lower_elo
@@ -250,14 +252,14 @@ if not os.path.isdir('./data/weights'):
     else:
         confirmation = input(f'\033[7mThe file will be downloaded to "{model_path}". Continue? (Y/N) \033[0m\n')
     if not confirmation.lower() == "y":
-        sys.exit()
+        sys.exit(1)
 if os.path.isfile('./change-config.sh') and os.path.isfile('./config/conf.yaml'):
     os.system(f'sh ./change-config.sh {base_name} {model_path}')
 command = f'wget --retry-on-host-error --retry-connrefused -t3 -L "{model_url}" -O {model_path}'
 status = os.system(command)
 if not status == 0:
     print('ERROR: An error occurred during the download process.')
-    raise
+    sys.exit(1)
 
 cfg_path = './data/configs/default_gtp.cfg'
 if os.path.isfile(cfg_path):
