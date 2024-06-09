@@ -252,7 +252,7 @@ if not os.path.isdir('./data/weights'):
     else:
         confirmation = input(f'\033[7mThe file will be downloaded to "{model_path}". Continue? (Y/N) \033[0m\n')
     if not confirmation.lower() == "y":
-        sys.exit()
+        sys.exit(1)
 if os.path.isfile('./change-config.sh') and os.path.isfile('./config/conf.yaml'):
     os.system(f'sh ./change-config.sh {base_name} {model_path}')
 command = f'wget --retry-on-host-error --retry-connrefused -t3 -L "{model_url}" -O {model_path}'
