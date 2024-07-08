@@ -20,13 +20,15 @@
 '''
 
 import urllib.request
+from urllib.parse import unquote
+import gzip
 import json
 import re
 import os
 import sys
 import subprocess
 try:
-    from lxml import html
+    import lxml.html
     use_lxml = True
 except:
     use_lxml = False
@@ -52,27 +54,34 @@ def get_group1(pattern, string):
         return None
 
 def get_page(url, get_content=True):
-    for i in range(3):
+    for i in range(2):
         try:
             user_agent = "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-            req = urllib.request.Request(url, headers={'User-Agent': user_agent})
-            with urllib.request.urlopen(req, timeout=5) as response:
-                if get_content:
-                    return response.read()
-                else:
+            headers = {'User-Agent': user_agent, 'Accept-Encoding': 'gzip'}
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=8) as response:
+                if not get_content:
                     return response
+                content_ = response.read()
+                if response.headers.get('Content-Encoding') == 'gzip':
+                    content_ = gzip.decompress(content_)
+                return response, content_
         except KeyboardInterrupt:
             print("\nInterrupted by user.")
             sys.exit(1)
+        except Exception as e:
+            print(f"ERROR: {e}")
+            if i == 1:
+                sys.exit(1)
+            print("Retrying...")
         except:
-            if i == 2:
-                print('ERROR: Cannot connect to the server at this time')
-                raise
+            raise
 
 def get_page_number(pattern):
     # 获取第一个匹配的模型所在页数
     url = 'https://katagotraining.org/api/networks-for-elo/?format=json' #更新较慢
-    infos = json.loads(get_page(url))
+    response, content_ = get_page(url)
+    infos = json.loads(content_)
     numModels = len(infos)
     total_numPages = (numModels - 1) // 20 + 1
     model_num = 0
@@ -119,7 +128,8 @@ if model_url == None and not regexp_mode:
             url="https://katagotraining.org/api/networks/newest_training/?format=json"
         else:
             url="https://katagotraining.org/api/networks/get_strongest/?format=json"
-        info = json.loads(get_page(url))
+        response, content_ = get_page(url)
+        info = json.loads(content_)
         model_url = info['model_file']
     else:
         BLOCK = get_group1('([0-9]+)b', WEIGHT_FILE)
@@ -136,8 +146,6 @@ if model_url == None and not regexp_mode:
         if SAMPLE == None and not use_new:
             if BLOCK == '60':
                 model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b60c320-s9356080896-d3824355768.bin.gz"
-            elif BLOCK == '40':
-                model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b40c256-s11840935168-d2898845681.bin.gz"
             elif BLOCK == '30':
                 model_url = "https://github.com/lightvector/KataGo/releases/download/v1.4.5/g170-b30c320x2-s4824661760-d1229536699.bin.gz"
             elif BLOCK == '20':
@@ -149,6 +157,7 @@ if model_url == None and not regexp_mode:
             elif BLOCK == '6':
                 model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b6c96-s175395328-d26788732.txt.gz"
 
+# 从官网获取下载链接
 if model_url == None:
     if regexp_mode:
         pattern = regexp
@@ -159,9 +168,9 @@ if model_url == None:
     # 方法1，'lxml'模块可用时，使用'lxml'模块获取模型链接
     if use_lxml:
         url = "https://katagotraining.org/networks/"
-        content = get_page(url)
+        response, content_ = get_page(url)
         # 解析 HTML 表格
-        tree = html.fromstring(content)
+        tree = lxml.html.fromstring(content_)
         table = tree.xpath('//table[@class="table mt-3"]')[0]
         max_lower_elo = -1
         i = 0
@@ -203,8 +212,8 @@ if model_url == None:
             futures = [executor.submit(get_page, url) for url in urls] #多线程获取网页
             max_lower_elo = -1
             for future in futures:
-                content = future.result()
-                infos = json.loads(content)['results']
+                response, content_ = future.result()
+                infos = json.loads(content_)['results']
                 for info in infos:
                     model_name = info['name']
                     if re.search(pattern, model_name, re.IGNORECASE) == None:
@@ -224,27 +233,41 @@ if model_url == None:
     sys.exit(1)
 print(f'model_url: {model_url}')
 
-filename = os.path.basename(model_url).split("?")[0]
+# 文件名处理
+model_name = unquote(model_url.split("/")[-1]).split("?")[0]
 if BLOCK == None:
-    BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", filename)
+    BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", model_name)
     if BLOCK == None:
         # 获取远程文件名
         response = get_page(model_url, False)
         content_disposition = response.headers.get('Content-Disposition')
         if content_disposition:
-            re_result = get_group1("filename=[\"']?([^\"']+)", content_disposition)
-            if re_result:
-                filename = re_result
-                print(f"model_name: {filename}")
-                BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", filename)
+            filename = None
+            parts = content_disposition.split(";")
+            for part in parts:
+                if part.strip().startswith('filename='):
+                    filename = part.split('=')[-1].strip('"').encode("iso8859-1").decode("utf-8")
+                    break
+                elif part.strip().startswith('filename*='): #filename*=<charset>'<language>'<encoded-value>
+                    filename = part.split('=')[-1].strip('"')
+                    encoding = filename.split("'")[0] if filename.split("'")[0] else 'utf-8'
+                    filename = unquote(filename.split("'")[-1], encoding=encoding)
+                    break
+            if filename:
+                model_name = filename
+                BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", model_name)
+print(f"model_name: {model_name}")
 if BLOCK:
     base_name = f'{BLOCK}b'
 else:
     base_name = 'my_model'
-ext = get_group1(r"(bin\.gz|txt\.gz)$", filename)
+ext = get_group1(r"(bin\.gz|txt\.gz|bin|txt|gz)$", model_name)
 if ext == None:
     ext = "gz"
+    print("\033[33;1mWARN\033[0m: Invalid extension. The extension has been changed to gz, which may cause an error.")
 model_path = f'./data/weights/{base_name}.{ext}'
+
+# 下载
 if not os.path.isdir('./data/weights'):
     model_path = f'{base_name}.{ext}'
     if os.path.isfile(model_path):
@@ -253,14 +276,15 @@ if not os.path.isdir('./data/weights'):
         confirmation = input(f'\033[7mThe file will be downloaded to "{model_path}". Continue? (Y/N) \033[0m\n')
     if not confirmation.lower() == "y":
         sys.exit(1)
-if os.path.isfile('./change-config.sh') and os.path.isfile('./config/conf.yaml'):
-    os.system(f'sh ./change-config.sh {base_name} {model_path}')
 command = f'wget --retry-on-host-error --retry-connrefused -t3 -L "{model_url}" -O {model_path}'
 status = os.system(command)
 if not status == 0:
     print('ERROR: An error occurred during the download process.')
     sys.exit(1)
 
+# 修改配置文件
+if os.path.isfile('./change-config.sh') and os.path.isfile('./config/conf.yaml'):
+    _ = os.system(f'sh ./change-config.sh {base_name} {model_path}')
 cfg_path = './data/configs/default_gtp.cfg'
 if os.path.isfile(cfg_path):
     try:
@@ -292,5 +316,5 @@ if os.path.isfile(cfg_path):
         }
     numThreads = THREADS_DICT.get((KATAGO_BACKEND, BLOCK), None)
     if numThreads is not None:
-        os.system(rf'sed -i -E "s/^(numSearchThreads =).*/\1 {numThreads}/" {cfg_path}')
-    os.system(f'sed -n "/^numSearchThreads/p" {cfg_path}')
+        _ = os.system(rf'sed -i -E "s/^(numSearchThreads =).*/\1 {numThreads}/" {cfg_path}')
+    _ = os.system(f'sed -n "/^numSearchThreads/p" {cfg_path}')
