@@ -234,7 +234,7 @@ if model_url == None:
 print(f'model_url: {model_url}')
 
 # 文件名处理
-model_name = unquote(model_url.split("/")[-1]).split("?")[0]
+model_name = unquote(model_url.split("/")[-1].split("?")[0])
 if BLOCK == None:
     BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", model_name)
     if BLOCK == None:
@@ -246,7 +246,11 @@ if BLOCK == None:
             parts = content_disposition.split(";")
             for part in parts:
                 if part.strip().startswith('filename='):
-                    filename = part.split('=')[-1].strip('"').encode("iso8859-1").decode("utf-8")
+                    filename = part.split('=')[-1].strip('"')
+                    try:
+                        filename = filename.encode("iso8859-1").decode("utf-8")
+                    except:
+                        pass
                     break
                 elif part.strip().startswith('filename*='): #filename*=<charset>'<language>'<encoded-value>
                     filename = part.split('=')[-1].strip('"')
