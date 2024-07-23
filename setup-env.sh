@@ -40,23 +40,25 @@ mkdir -p /content/work/data/bins
 mkdir -p /content/work/data/weights
 
 #download the binarires
-if [[ ! $KATAGO_BACKEND =~ TENSORRT|CUDA ]]; then
+if [[ ! $KATAGO_BACKEND =~ ^TENSORRT$|^CUDA$ ]]; then
   echo -e "\e[1;33m\nWARN: KATAGO_BACKEND=\"$KATAGO_BACKEND\" is invalid. Changed to \"CUDA\".\e[0m\n"
   KATAGO_BACKEND="CUDA"
 fi
 if [[ $KATAGO_BACKEND == TENSORRT ]]; then
-  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.14.1/katago-v1.14.1-trt8.6.1-cuda12.1-linux-x64.zip" -O ./katago.zip
+  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.15.1/katago-v1.15.1-trt8.6.1-cuda12.1-linux-x64.zip" -O ./katago.zip
 elif [[ $KATAGO_BACKEND == CUDA ]]; then
-  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.14.1/katago-v1.14.1-cuda12.1-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
+  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.15.1/katago-v1.15.1-cuda12.1-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
 fi
 unzip -od data/bins ./katago.zip
 chmod +x ./data/bins/katago
+cp ./data/bins/gtp_human5k_example.cfg ./data/configs/human_gtp.cfg
 mkdir -p /root/.katago/
 cp -r ./opencltuning /root/.katago/
 
 #download the weights
 wget -nv "https://raw.githubusercontent.com/fxb6666/something-for-ikatago/main/kata-weights.py" -O kata-weights.py
 python3 ./kata-weights.py "$WEIGHT_FILE" "$KATAGO_BACKEND"
+wget -O ./data/weights/human.bin.gz "https://github.com/lightvector/KataGo/releases/download/v1.15.0/b18c384nbt-humanv0.bin.gz"
 
 if [ "$KATAGO_BACKEND" == "TENSORRT" ]
 then
@@ -67,5 +69,8 @@ then
     unzip -qojd ~/.katago/trtcache timing-caches.zip
   fi
 fi
+ln -sf /usr/lib/x86_64-linux-gnu/libzip.so.4 /usr/lib/x86_64-linux-gnu/libzip.so.5
+wget -nv -r -c -nd -e robots=off --accept-regex 'libssl1\.1_1\.1\.1f-1ubuntu[0-9]\.[0-9]+_amd64\.deb' 'http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/'
+dpkg -i libssl1.1*.deb
 
 chmod +x ./ikatago-server
