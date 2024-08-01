@@ -30,7 +30,7 @@ echo "Using Katago Backend: " $KATAGO_BACKEND
 echo "Using Katago Weight: " $WEIGHT_FILE
 
 cd /content
-apt install --yes libzip4 1>/dev/null
+apt-get install -qq -y libzip4
 rm -rf work
 wget --quiet https://github.com/kinfkong/ikatago-for-colab/releases/download/$RELEASE_VERSION/work.zip -O work.zip
 unzip -qq work.zip
@@ -51,9 +51,12 @@ elif [[ $KATAGO_BACKEND == CUDA ]]; then
 fi
 unzip -od data/bins ./katago.zip
 chmod +x ./data/bins/katago
-cp ./data/bins/gtp_human5k_example.cfg ./data/configs/human_gtp.cfg
+if [ -f ./data/bins/gtp_human5k_example.cfg ]; then
+  cp ./data/bins/gtp_human5k_example.cfg ./data/configs/human_gtp.cfg
+else
+  wget -qO ./data/configs/human_gtp.cfg "https://raw.githubusercontent.com/lightvector/KataGo/master/cpp/configs/gtp_human5k_example.cfg"
+fi
 mkdir -p /root/.katago/
-cp -r ./opencltuning /root/.katago/
 
 #download the weights
 wget -nv "https://raw.githubusercontent.com/fxb6666/something-for-ikatago/main/kata-weights.py" -O kata-weights.py
@@ -69,8 +72,16 @@ then
     unzip -qojd ~/.katago/trtcache timing-caches.zip
   fi
 fi
+
 ln -sf /usr/lib/x86_64-linux-gnu/libzip.so.4 /usr/lib/x86_64-linux-gnu/libzip.so.5
-wget -nv -r -c -nd -e robots=off --accept-regex 'libssl1\.1_1\.1\.1f-1ubuntu[0-9]\.[0-9]+_amd64\.deb' 'http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/'
-dpkg -i libssl1.1*.deb
+html=$(wget -qO- "http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/")
+filename=$(grep -o -E 'libssl1\.1_1\.1\.[0-9][a-z]-[0-9]ubuntu[0-9]\.[0-9]+_amd64\.deb' <<<$html | tail -n 1)
+if [ -z "$filename" ]; then
+  filename=$(grep -o -E 'libssl1\.1_1\.1\.[0-9][a-z]-[0-9]ubuntu[0-9]_amd64\.deb' <<<$html | tail -n 1)
+fi
+if [ -n "$filename" ]; then
+  wget -nv -O libssl1.1.deb "http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/$filename"
+  dpkg -i libssl1.1.deb
+fi
 
 chmod +x ./ikatago-server
