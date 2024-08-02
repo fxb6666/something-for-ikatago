@@ -74,14 +74,8 @@ then
 fi
 
 ln -sf /usr/lib/x86_64-linux-gnu/libzip.so.4 /usr/lib/x86_64-linux-gnu/libzip.so.5
-html=$(wget -qO- "http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/")
-filename=$(grep -o -E 'libssl1\.1_1\.1\.[0-9][a-z]-[0-9]ubuntu[0-9]\.[0-9]+_amd64\.deb' <<<$html | tail -n 1)
-if [ -z "$filename" ]; then
-  filename=$(grep -o -E 'libssl1\.1_1\.1\.[0-9][a-z]-[0-9]ubuntu[0-9]_amd64\.deb' <<<$html | tail -n 1)
-fi
-if [ -n "$filename" ]; then
-  wget -nv -O libssl1.1.deb "http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/$filename"
-  dpkg -i libssl1.1.deb
-fi
+url=$(wget -qO- "https://packages.ubuntu.com/focal/amd64/libssl1.1/download" | grep -o -m 1 "http.*amd64\.deb")
+wget -nv -O libssl1.1.deb "$url"
+dpkg -i libssl1.1.deb
 
 chmod +x ./ikatago-server
