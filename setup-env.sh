@@ -45,17 +45,13 @@ if [[ ! $KATAGO_BACKEND =~ ^TENSORRT$|^CUDA$ ]]; then
   KATAGO_BACKEND="CUDA"
 fi
 if [[ $KATAGO_BACKEND == TENSORRT ]]; then
-  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.15.1/katago-v1.15.1-trt8.6.1-cuda12.1-linux-x64.zip" -O ./katago.zip
+  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.15.2/katago-v1.15.2-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
 elif [[ $KATAGO_BACKEND == CUDA ]]; then
-  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.15.1/katago-v1.15.1-cuda12.1-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
+  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.15.2/katago-v1.15.2-cuda12.1-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
 fi
 unzip -od data/bins ./katago.zip
 chmod +x ./data/bins/katago
-if [ -f ./data/bins/gtp_human5k_example.cfg ]; then
-  cp ./data/bins/gtp_human5k_example.cfg ./data/configs/human_gtp.cfg
-else
-  wget -qO ./data/configs/human_gtp.cfg "https://raw.githubusercontent.com/lightvector/KataGo/master/cpp/configs/gtp_human5k_example.cfg"
-fi
+cp ./data/bins/gtp_human5k_example.cfg ./data/configs/human_gtp.cfg
 mkdir -p /root/.katago/
 
 #download the weights
@@ -65,7 +61,7 @@ wget -O ./data/weights/human.bin.gz "https://github.com/lightvector/KataGo/relea
 
 if [ "$KATAGO_BACKEND" == "TENSORRT" ]
 then
-  apt-get install libnvinfer8=8.6.1.6-1+cuda12.0
+  apt-get install -y libnvinfer10=10.2.0.19-1+cuda12.5
   if [ "$GPU_NAME" == "TeslaT4" ]; then
     wget -q "https://github.com/fxb6666/something-for-ikatago/releases/download/v1.0.0/timing-caches.zip" -O timing-caches.zip
     mkdir -p ~/.katago/trtcache
@@ -74,7 +70,7 @@ then
 fi
 
 ln -sf /usr/lib/x86_64-linux-gnu/libzip.so.4 /usr/lib/x86_64-linux-gnu/libzip.so.5
-url=$(wget -qO- "https://packages.ubuntu.com/focal/amd64/libssl1.1/download" | grep -o -m 1 "http.*amd64\.deb")
+url=$(wget -qO- "https://packages.ubuntu.com/focal/amd64/libssl1.1/download" | grep -o -E -m1 'http[^"]+amd64\.deb')
 wget -nv -O libssl1.1.deb "$url"
 dpkg -i libssl1.1.deb
 
