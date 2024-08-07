@@ -246,14 +246,14 @@ if BLOCK == None:
             parts = content_disposition.split(";")
             for part in parts:
                 if part.strip().startswith('filename='):
-                    filename = part.split('=')[-1].strip('"')
+                    filename = part.split('filename=')[-1].strip('"')
                     try:
                         filename = filename.encode("iso8859-1").decode("utf-8")
                     except:
                         pass
                     break
                 elif part.strip().startswith('filename*='): #filename*=<charset>'<language>'<encoded-value>
-                    filename = part.split('=')[-1].strip('"')
+                    filename = part.split('filename*=')[-1].strip('"')
                     encoding = filename.split("'")[0] if filename.split("'")[0] else 'utf-8'
                     filename = unquote(filename.split("'")[-1], encoding=encoding)
                     break
