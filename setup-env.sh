@@ -45,9 +45,9 @@ if [[ ! $KATAGO_BACKEND =~ ^TENSORRT$|^CUDA$ ]]; then
   KATAGO_BACKEND="CUDA"
 fi
 if [[ $KATAGO_BACKEND == TENSORRT ]]; then
-  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.15.2/katago-v1.15.2-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
+  wget -q "https://github.com/lightvector/KataGo/releases/download/v1.15.3/katago-v1.15.3-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
 elif [[ $KATAGO_BACKEND == CUDA ]]; then
-  wget -nv "https://github.com/lightvector/KataGo/releases/download/v1.15.2/katago-v1.15.2-cuda12.1-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
+  wget -q "https://github.com/lightvector/KataGo/releases/download/v1.15.3/katago-v1.15.3-cuda12.5-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
 fi
 unzip -od data/bins ./katago.zip
 chmod +x ./data/bins/katago
