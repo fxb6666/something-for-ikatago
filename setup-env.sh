@@ -70,7 +70,7 @@ then
 fi
 
 ln -sf /usr/lib/x86_64-linux-gnu/libzip.so.4 /usr/lib/x86_64-linux-gnu/libzip.so.5
-url=$(wget -qO- "https://packages.ubuntu.com/focal/amd64/libssl1.1/download" | grep -o -E -m1 'http[^"]+amd64\.deb')
+url=$(wget --retry-on-http-error=500 --timeout=6 -qO- "https://packages.ubuntu.com/focal/amd64/libssl1.1/download" | grep -o -E -m1 'http[^"]+amd64\.deb')
 wget -nv -O libssl1.1.deb "$url"
 dpkg -i libssl1.1.deb
 
