@@ -63,9 +63,9 @@ if [ "$KATAGO_BACKEND" == "TENSORRT" ]
 then
   apt-get install -y libnvinfer10=10.2.0.19-1+cuda12.5
   if [ "$GPU_NAME" == "TeslaT4" ]; then
-    wget -q "https://github.com/fxb6666/something-for-ikatago/releases/download/v1.0.0/timing-caches.zip" -O timing-caches.zip
+    wget -q "https://github.com/fxb6666/something-for-ikatago/releases/download/v1.0.0/timing-caches.tar.xz" -O timing-caches.tar.xz
     mkdir -p ~/.katago/trtcache
-    unzip -qojd ~/.katago/trtcache timing-caches.zip
+    tar -C ~/.katago/trtcache/ -xf timing-caches.tar.xz
   fi
 fi
 
