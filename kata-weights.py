@@ -77,26 +77,6 @@ def get_page(url, get_content=True):
         except:
             raise
 
-def get_page_number(pattern):
-    # 获取第一个匹配的模型所在页数
-    url = 'https://katagotraining.org/api/networks-for-elo/?format=json' #更新较慢
-    response, content_ = get_page(url)
-    infos = json.loads(content_)
-    numModels = len(infos)
-    total_numPages = (numModels - 1) // 20 + 1
-    model_num = 0
-    page_number = ""
-    for info in infos:
-        model_num = model_num + 1
-        model_name = info['name']
-        if re.search(pattern, model_name, re.IGNORECASE):
-            page_number = (model_num - 1) // 20 + 1
-            break
-    if not page_number:
-        print(f'ERROR: No weights matching "{pattern}" were found.')
-        sys.exit(1)
-    return page_number, total_numPages
-
 model_url = None
 regexp_mode = False
 
@@ -144,9 +124,7 @@ if model_url == None and not regexp_mode:
         if re.search('-new', WEIGHT_FILE, re.IGNORECASE):
             use_new = True
         if SAMPLE == None and not use_new:
-            if BLOCK == '60':
-                model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b60c320-s9356080896-d3824355768.bin.gz"
-            elif BLOCK == '30':
+            if BLOCK == '30':
                 model_url = "https://github.com/lightvector/KataGo/releases/download/v1.4.5/g170-b30c320x2-s4824661760-d1229536699.bin.gz"
             elif BLOCK == '20':
                 model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b20c256x2-s5303129600-d1228401921.bin.gz"
@@ -175,10 +153,8 @@ if model_url == None:
         max_lower_elo = -1
         i = 0
         # 遍历表格行
-        for row in table.xpath('.//tr'):
+        for row in table.xpath('.//tr')[1:]:
             columns = row.xpath('.//td')
-            if not len(columns):
-                continue
             model_name = columns[0].text.strip()
             if re.search(pattern, model_name, re.IGNORECASE) == None:
                 continue
@@ -196,19 +172,31 @@ if model_url == None:
                 continue
             max_lower_elo = lower_elo
             model_url = columns[3].xpath('.//a/@href')[0]
-    # 方法2，'lxml'模块不可用时，通过api方式获取模型链接
+    # 方法2，'lxml'模块不可用时，从api获取模型链接
     else:
         base_url = "https://katagotraining.org/api/networks/?format=json&page={}" #每页20个模型
-        page_number, total_numPages = get_page_number(pattern)
-        numPagesSearch = 5 #第一个匹配到的模型所在的页面和之后的4页
+        url = 'https://katagotraining.org/api/networks-for-elo/?format=json' #更新较慢
+        response, content_ = get_page(url)
+        infos = json.loads(content_)
+        numModels = len(infos)
+        total_numPages = (numModels - 1) // 20 + 1
+        model_num = 0
+        page_number = 1
+        for info in infos:
+            model_num = model_num + 1
+            model_name = info['name']
+            if re.search(pattern, model_name, re.IGNORECASE):
+                page_number = (model_num - 1) // 20 + 1
+                break
+        numPagesToSearch = 5 #第一个匹配到的模型所在的页面和之后的4页
         if use_new or regexp_mode or SAMPLE:
-            numPagesSearch = 2
-        if total_numPages - page_number + 1 < numPagesSearch: #避免超出最大页数
-            numPagesSearch = total_numPages - page_number + 1
+            numPagesToSearch = 2
+        if total_numPages - page_number + 1 < numPagesToSearch: #避免超出最大页数
+            numPagesToSearch = total_numPages - page_number + 1
         urls = []
-        for n in range(page_number, page_number + numPagesSearch):
+        for n in range(page_number, page_number + numPagesToSearch):
             urls.append(base_url.format(n))
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=numPagesToSearch) as executor:
             futures = [executor.submit(get_page, url) for url in urls] #多线程获取网页
             max_lower_elo = -1
             for future in futures:
