@@ -34,7 +34,7 @@ except:
     use_lxml = False
     from concurrent.futures import ThreadPoolExecutor
 
-KATAGO_BACKEND = None
+KATAGO_BACKEND = ""
 if len(sys.argv) == 1:
     WEIGHT_FILE = 'AUTO'
 elif len(sys.argv) == 2:
@@ -45,6 +45,9 @@ elif len(sys.argv) == 3:
 else:
     print('ERROR: too many arguments')
     sys.exit(1)
+KATAGO_BACKEND = KATAGO_BACKEND.upper()
+if KATAGO_BACKEND == "TRT":
+    KATAGO_BACKEND = "TENSORRT"
 
 def get_group1(pattern, string):
     re_result = re.search(pattern, string, re.IGNORECASE)
@@ -224,7 +227,7 @@ print(f'model_url: {model_url}')
 # 文件名处理
 model_name = unquote(model_url.split("/")[-1].split("?")[0])
 if BLOCK == None:
-    BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", model_name)
+    BLOCK = get_group1("b([0-9]{1,3})c[0-9]{2,4}[^0-9]", model_name)
     if BLOCK == None:
         # 获取远程文件名
         response = get_page(model_url, False)
@@ -247,7 +250,7 @@ if BLOCK == None:
                     break
             if filename:
                 model_name = filename
-                BLOCK = get_group1("b([0-9]{1,2})c[0-9]{2,3}[^0-9]", model_name)
+                BLOCK = get_group1("b([0-9]{1,3})c[0-9]{2,4}[^0-9]", model_name)
 print(f"model_name: {model_name}")
 if BLOCK:
     base_name = f'{BLOCK}b'
@@ -268,7 +271,7 @@ if not os.path.isdir('./data/weights'):
         confirmation = input(f'\033[7mThe file will be downloaded to "{model_path}". Continue? (Y/N) \033[0m\n')
     if not confirmation.lower() == "y":
         sys.exit(1)
-command = f'wget --retry-on-host-error --retry-connrefused -t3 -L "{model_url}" -O {model_path}'
+command = f'wget --retry-on-host-error --retry-on-http-error=500 -t3 -L "{model_url}" -O {model_path}'
 status = os.system(command)
 if not status == 0:
     print('ERROR: An error occurred during the download process.')
@@ -278,35 +281,22 @@ if not status == 0:
 if os.path.isfile('./change-config.sh') and os.path.isfile('./config/conf.yaml'):
     _ = os.system(f'sh ./change-config.sh {base_name} {model_path}')
 cfg_path = './data/configs/default_gtp.cfg'
-if os.path.isfile(cfg_path):
+if os.path.isfile(cfg_path) and os.path.isfile("threads.json"):
     try:
         command = 'nvidia-smi --query-gpu=name --format=csv,noheader'
         GPU_NAME = subprocess.check_output(command, shell=True, universal_newlines=True, stderr=subprocess.DEVNULL).strip()
+        GPU_NAME = re.sub(" ", "_", GPU_NAME)
     except:
         GPU_NAME = None
-    THREADS_DICT = {}
-    if GPU_NAME == "Tesla T4":
-        THREADS_DICT = {
-            ("CUDA", "28"): "9",
-            ("CUDA", "18"): "18",
-            ("CUDA", "60"): "8",
-            ("CUDA", "40"): "10",
-            ("CUDA", "30"): "10",
-            ("CUDA", "20"): "13",
-            ("CUDA", "15"): "18",
-            ("CUDA", "10"): "22",
-            ("CUDA", "6"): "28",
-            ("TENSORRT", "28"): "13",
-            ("TENSORRT", "18"): "18",
-            ("TENSORRT", "60"): "10",
-            ("TENSORRT", "40"): "12",
-            ("TENSORRT", "30"): "14",
-            ("TENSORRT", "20"): "13",
-            ("TENSORRT", "15"): "20",
-            ("TENSORRT", "10"): "23",
-            ("TENSORRT", "6"): "28"
-        }
-    numThreads = THREADS_DICT.get((KATAGO_BACKEND, BLOCK), None)
-    if numThreads is not None:
+    PLATFORM = ""
+    if "cloud_studio" in str(os.environ):
+        PLATFORM = "cloud_studio"
+    elif "COLAB" in str(os.environ):
+        PLATFORM = "colab"
+    with open("threads.json", "r", encoding="utf-8") as f:
+        json_data = json.load(f)
+    THREADS_DICT = json_data.get(f"{PLATFORM}_{GPU_NAME}", {})
+    numThreads = THREADS_DICT.get(f"{KATAGO_BACKEND}_b{BLOCK}")
+    if numThreads:
         _ = os.system(rf'sed -i -E "s/^(numSearchThreads =).*/\1 {numThreads}/" {cfg_path}')
-    _ = os.system(f'sed -n "/^numSearchThreads/p" {cfg_path}')
+        _ = os.system(f'sed -n "/^numSearchThreads/p" {cfg_path}')

@@ -1,0 +1,42 @@
+{
+  "colab_Tesla_T4": {
+    "CUDA_b28": 9,
+    "CUDA_b18": 18,
+    "CUDA_b60": 8,
+    "CUDA_b40": 10,
+    "CUDA_b30": 10,
+    "CUDA_b20": 13,
+    "CUDA_b15": 18,
+    "CUDA_b10": 22,
+    "CUDA_b6": 28,
+    "TENSORRT_b28": 13,
+    "TENSORRT_b18": 18,
+    "TENSORRT_b60": 10,
+    "TENSORRT_b40": 12,
+    "TENSORRT_b30": 14,
+    "TENSORRT_b20": 13,
+    "TENSORRT_b15": 20,
+    "TENSORRT_b10": 23,
+    "TENSORRT_b6": 28
+  },
+  "cloud_studio_Tesla_T4": {
+    "CUDA_b28": 8,
+    "CUDA_b18": 24,
+    "CUDA_b60": 12,
+    "CUDA_b40": 22,
+    "CUDA_b30": 16,
+    "CUDA_b20": 26,
+    "CUDA_b15": 34,
+    "CUDA_b10": 42,
+    "CUDA_b6": 44,
+    "TENSORRT_b28": 14,
+    "TENSORRT_b18": 18,
+    "TENSORRT_b60": 12,
+    "TENSORRT_b40": 14,
+    "TENSORRT_b30": 14,
+    "TENSORRT_b20": 26,
+    "TENSORRT_b15": 32,
+    "TENSORRT_b10": 42,
+    "TENSORRT_b6": 46
+  }
+}
