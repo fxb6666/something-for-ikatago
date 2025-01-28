@@ -1,1 +1,1 @@
-https://colab.research.google.com/drive/1TdnGBAkWeK7VSe2I96jzWDM6Gh9Sr6a5?usp=sharing
+https://colab.research.google.com/github/fxb6666/something-for-ikatago/blob/main/ikatago-for-colab.ipynb
