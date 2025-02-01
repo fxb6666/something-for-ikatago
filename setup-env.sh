@@ -1,9 +1,9 @@
-#!/bin/bash
+p#!/bin/bash
 
 KATAGO_BACKEND=${1^^}
 WEIGHT_FILE=$2
 USE_HIGHTHREADS=$3
-RELEASE_VERSION=v1.1.0
+RELEASE_VERSION=v1.1.2
 GPU_NAME=`nvidia-smi -q | grep "Product Name" | cut -d":" -f2 | tr -cd '[:alnum:]._-'`
 #GPU_NAME=TeslaT4
 
@@ -48,13 +48,14 @@ python3 ./kata-weights.py "$WEIGHT_FILE" "$KATAGO_BACKEND"
 wget -c -O ./data/weights/human.bin.gz "https://github.com/lightvector/KataGo/releases/download/v1.15.0/b18c384nbt-humanv0.bin.gz"
 
 if ! ldconfig -p |grep 'libcudnn\.so\.8' &>/dev/null; then
-  apt-get install libcudnn8=8.9.7.29-1+cuda12.2
+  apt-get install -y libcudnn8=8.9.7.29-1+cuda12.2
 fi
 if ! ldconfig -p |grep 'libcublas\.so\.12' &>/dev/null; then
   apt-get download -y libcublas-12-5
   dpkg -x libcublas-12-5*.deb /
   rm -f libcublas-12-5*.deb
   echo '/usr/local/cuda-12.5/lib64' >/etc/ld.so.conf.d/libcublas12.conf
+  ldconfig
 fi
 if [ "$KATAGO_BACKEND" == "TENSORRT" ]; then
   apt-get install -y libnvinfer10=10.2.0.19-1+cuda12.5
