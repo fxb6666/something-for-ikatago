@@ -1,4 +1,4 @@
-p#!/bin/bash
+#!/bin/bash
 
 KATAGO_BACKEND=${1^^}
 WEIGHT_FILE=$2
