@@ -47,12 +47,14 @@ wget -nv "https://github.com/fxb6666/something-for-ikatago/releases/download/$RE
 python3 ./kata-weights.py "$WEIGHT_FILE" "$KATAGO_BACKEND"
 wget -c -O ./data/weights/human.bin.gz "https://github.com/lightvector/KataGo/releases/download/v1.15.0/b18c384nbt-humanv0.bin.gz"
 
+if ! ldconfig -p |grep 'libcudnn\.so\.8' &>/dev/null; then
+  apt-get install libcudnn8=8.9.7.29-1+cuda12.2
+fi
 if ! ldconfig -p |grep 'libcublas\.so\.12' &>/dev/null; then
   apt-get download -y libcublas-12-5
   dpkg -x libcublas-12-5*.deb /
   rm -f libcublas-12-5*.deb
   echo '/usr/local/cuda-12.5/lib64' >/etc/ld.so.conf.d/libcublas12.conf
-  ldconfig
 fi
 if [ "$KATAGO_BACKEND" == "TENSORRT" ]; then
   apt-get install -y libnvinfer10=10.2.0.19-1+cuda12.5
@@ -62,6 +64,7 @@ if [ "$KATAGO_BACKEND" == "TENSORRT" ]; then
     tar -C ~/.katago/trtcache/ -xf timing-caches.tar.xz
   fi
 fi
+ldconfig
 
 url=$(wget --retry-on-http-error=500 --timeout=6 -qO- "https://packages.ubuntu.com/focal/amd64/libssl1.1/download" | grep -o -E -m1 'http[^"]+amd64\.deb')
 wget -nv -O libssl1.1.deb "$url"
