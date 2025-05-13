@@ -3,7 +3,7 @@
 KATAGO_BACKEND=${1^^}
 WEIGHT_FILE=$2
 USE_HIGHTHREADS=$3
-RELEASE_VERSION=v1.1.2
+RELEASE_VERSION=v1.2.0
 GPU_NAME=`nvidia-smi -q | grep "Product Name" | cut -d":" -f2 | tr -cd '[:alnum:]._-'`
 #GPU_NAME=TeslaT4
 
@@ -34,9 +34,9 @@ if [[ ! $KATAGO_BACKEND =~ ^TENSORRT$|^CUDA$ ]]; then
   KATAGO_BACKEND="CUDA"
 fi
 if [[ $KATAGO_BACKEND == TENSORRT ]]; then
-  wget -q -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.15.3/katago-v1.15.3-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
+  wget -q -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.16.0/katago-v1.16.0-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
 elif [[ $KATAGO_BACKEND == CUDA ]]; then
-  wget -q -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.15.3/katago-v1.15.3-cuda12.5-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
+  wget -q -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.16.0/katago-v1.16.0-cuda12.5-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
 fi
 unzip -od data/bins ./katago.zip
 chmod +x ./data/bins/katago
