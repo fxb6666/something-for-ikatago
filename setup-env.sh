@@ -34,9 +34,9 @@ if [[ ! $KATAGO_BACKEND =~ ^TENSORRT$|^CUDA$ ]]; then
   KATAGO_BACKEND="CUDA"
 fi
 if [[ $KATAGO_BACKEND == TENSORRT ]]; then
-  wget -q -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.16.0/katago-v1.16.0-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
+  wget -q -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.16.2/katago-v1.16.2-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
 elif [[ $KATAGO_BACKEND == CUDA ]]; then
-  wget -q -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.16.0/katago-v1.16.0-cuda12.5-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
+  wget -q -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.16.2/katago-v1.16.2-cuda12.5-cudnn8.9.7-linux-x64.zip" -O ./katago.zip
 fi
 unzip -od data/bins ./katago.zip
 chmod +x ./data/bins/katago
@@ -45,7 +45,7 @@ cp ./data/bins/gtp_human5k_example.cfg ./data/configs/human_gtp.cfg
 #download the weights
 wget -nv -T 10 -t 5 "https://github.com/fxb6666/something-for-ikatago/releases/download/$RELEASE_VERSION/kata-weights.py" -O kata-weights.py
 python3 ./kata-weights.py "$WEIGHT_FILE" "$KATAGO_BACKEND"
-wget -T 10 -t 5 -c -O ./data/weights/human.bin.gz "https://github.com/lightvector/KataGo/releases/download/v1.15.0/b18c384nbt-humanv0.bin.gz"
+wget -T 10 -t 5 -c -O ./data/weights/human.bin.gz "https://media.katagotraining.org/uploaded/networks/models_extra/b18c384nbt-humanv0.bin.gz"
 
 if ! ldconfig -p |grep 'libcudnn\.so\.8' &>/dev/null; then
   apt-get install -y libcudnn8=8.9.7.29-1+cuda12.2
