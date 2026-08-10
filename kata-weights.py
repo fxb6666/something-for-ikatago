@@ -2,19 +2,19 @@
 # -*- coding: utf-8 -*-
 
 '''
-功能：此脚本可下载KataGo官网的所有权重文件，并支持使用第三方下载链接。为“CUDA”和“TENSORRT”引擎使用6b至28b的权重预设了适合于“Tesla T4”的最佳线程。
+功能：此脚本可下载KataGo官网的所有权重文件，并支持使用第三方下载链接。
 提示：'lxml'模块可用时效率更高。
 注意：当存在“./data/weights”目录时，将无提示直接下载文件到此目录，同名文件会被覆盖。
 
 一、基本参数
-1. 参数示例：AUTO，NEW，18b，b18，18b-new，18b8526，18bs8526，b18s8526。仅以18b举例，其它块（block）数同理。
+1. 参数示例：AUTO，NEW，18b，b18，18b-new，18bs8526，b18s8526。仅以18b举例，其它块（block）数同理。
 2. “AUTO”和“NEW”分别可以下载最强权重和最新权重。
 3. 仅指定块数时将下载对应块数的最强权重（elo下限值最大）。
 4. 块数后附加“-new”将下载指定块数中的最新权重。
 5. 块数后附加s和采样数可下载指定权重。
 
 二、特殊参数（加引号）
-1. 支持正则表达式匹配特殊权重名称，表达式需要位于两条斜线中间，例如："/b18.*uec/"。如果有多个结果，只下载最新的一个。
+1. 支持正则表达式匹配特殊权重名称，表达式需要位于两条斜线中间，例如："/b18.*uec/"。多个结果时取最强结果。
 2. 支持以 http/https 开头的下载链接。
 3. 支持谷歌云端硬盘单个文件的分享链接和ID。 如果只有ID部分，需要以 id= 开头。
 '''
@@ -41,7 +41,7 @@ elif len(sys.argv) == 2:
     WEIGHT_FILE = sys.argv[1]
 elif len(sys.argv) == 3:
     WEIGHT_FILE = sys.argv[1]
-    KATAGO_BACKEND = sys.argv[2]
+    KATAGO_BACKEND = sys.argv[2].upper()
 else:
     print('ERROR: too many arguments')
     sys.exit(1)
@@ -81,7 +81,7 @@ def get_page(url, get_content=True):
             raise
 
 model_url = None
-regexp_mode = False
+regexp = ''
 
 # 特殊参数部分
 if re.search(r'drive\.google\.com|^id=', WEIGHT_FILE, re.IGNORECASE) is not None:
@@ -97,7 +97,6 @@ if re.search(r'drive\.google\.com|^id=', WEIGHT_FILE, re.IGNORECASE) is not None
 elif re.search('^http', WEIGHT_FILE, re.IGNORECASE):
     model_url = WEIGHT_FILE
 elif re.search('^/.*/$', WEIGHT_FILE, re.IGNORECASE):
-    regexp_mode = True
     regexp = get_group1('/(.*)/', WEIGHT_FILE)
 
 BLOCK = None
@@ -105,7 +104,7 @@ SAMPLE = None
 use_new = False
 
 # 基本参数部分
-if model_url == None and not regexp_mode:
+if model_url == None and not regexp:
     if WEIGHT_FILE.upper() in ['AUTO', 'NEW']:
         if WEIGHT_FILE.upper() == 'NEW':
             url="https://katagotraining.org/api/networks/newest_training/?format=json"
@@ -123,29 +122,22 @@ if model_url == None and not regexp_mode:
                 if BLOCK == None:
                     print('ERROR: Block number matching failed.')
                     sys.exit(1)
-        SAMPLE = get_group1('([0-9]{3,})', WEIGHT_FILE)
+        SAMPLE = get_group1('[bs]([0-9]{3,})', WEIGHT_FILE)
         if re.search('-new', WEIGHT_FILE, re.IGNORECASE):
             use_new = True
         if SAMPLE == None and not use_new:
             if BLOCK == '30':
                 model_url = "https://github.com/lightvector/KataGo/releases/download/v1.4.5/g170-b30c320x2-s4824661760-d1229536699.bin.gz"
-            elif BLOCK == '20':
-                model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b20c256x2-s5303129600-d1228401921.bin.gz"
-            elif BLOCK == '15':
-                model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b15c192-s1672170752-d466197061.txt.gz"
-            elif BLOCK == '10':
-                model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b10c128-s1141046784-d204142634.txt.gz"
-            elif BLOCK == '6':
-                model_url = "https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b6c96-s175395328-d26788732.txt.gz"
 
 # 从官网获取下载链接
 if model_url == None:
-    if regexp_mode:
+    if regexp:
         pattern = regexp
     elif SAMPLE:
-        pattern = f'-b{BLOCK}c.*s{SAMPLE}'
+        pattern = f'b{BLOCK}c.*s{SAMPLE}'
     else:
-        pattern = f'-b{BLOCK}c'
+        pattern = f'b{BLOCK}c'
+    compiled_re = re.compile(pattern, re.IGNORECASE)
     # 方法1，'lxml'模块可用时，使用'lxml'模块获取模型链接
     if use_lxml:
         url = "https://katagotraining.org/networks/"
@@ -159,12 +151,12 @@ if model_url == None:
         for row in table.xpath('.//tr')[1:]:
             columns = row.xpath('.//td')
             model_name = columns[0].text.strip()
-            if re.search(pattern, model_name, re.IGNORECASE) == None:
+            if re.search(compiled_re, model_name) == None:
                 continue
             i = i + 1
-            if i > 50:
+            if i > 100:
                 break
-            if use_new or regexp_mode or SAMPLE:
+            if use_new or SAMPLE:
                 model_url = columns[3].xpath('.//a/@href')[0] if columns[3].xpath('.//a/@href') else None
                 break
             elo_rating = columns[2].text.split()
@@ -183,21 +175,19 @@ if model_url == None:
         infos = json.loads(content_)
         numModels = len(infos)
         total_numPages = (numModels - 1) // 20 + 1
-        model_num = 0
-        page_number = 1
-        for info in infos:
-            model_num = model_num + 1
+        start_page = 1
+        for idx, info in enumerate(infos, 1):
             model_name = info['name']
-            if re.search(pattern, model_name, re.IGNORECASE):
-                page_number = (model_num - 1) // 20 + 1
+            if re.search(compiled_re, model_name):
+                start_page = (idx - 1) // 20 + 1
                 break
         numPagesToSearch = 5 #第一个匹配到的模型所在的页面和之后的4页
-        if use_new or regexp_mode or SAMPLE:
+        if use_new or SAMPLE:
             numPagesToSearch = 2
-        if total_numPages - page_number + 1 < numPagesToSearch: #避免超出最大页数
-            numPagesToSearch = total_numPages - page_number + 1
+        if total_numPages - start_page + 1 < numPagesToSearch: #避免超出最大页数
+            numPagesToSearch = total_numPages - start_page + 1
         urls = []
-        for n in range(page_number, page_number + numPagesToSearch):
+        for n in range(start_page, start_page + numPagesToSearch):
             urls.append(base_url.format(n))
         with ThreadPoolExecutor(max_workers=numPagesToSearch) as executor:
             futures = [executor.submit(get_page, url) for url in urls] #多线程获取网页
@@ -207,9 +197,9 @@ if model_url == None:
                 infos = json.loads(content_)['results']
                 for info in infos:
                     model_name = info['name']
-                    if re.search(pattern, model_name, re.IGNORECASE) == None:
+                    if re.search(compiled_re, model_name) == None:
                         continue
-                    if use_new or regexp_mode or SAMPLE:
+                    if use_new or SAMPLE:
                         model_url = info['model_file']
                         break
                     lower_elo = info['log_gamma_lower_confidence']
@@ -217,43 +207,42 @@ if model_url == None:
                         continue
                     max_lower_elo = lower_elo
                     model_url = info['model_file']
-                if (use_new or regexp_mode or SAMPLE) and model_url:
+                if (use_new or SAMPLE) and model_url:
                     break
 if model_url == None:
-    print(f'ERROR: No URLs for weights matching "{pattern}" were found.')
+    print(f'ERROR: No models matching "{pattern}" were found.')
     sys.exit(1)
 print(f'model_url: {model_url}')
 
 # 文件名处理
 model_name = unquote(model_url.split("/")[-1].split("?")[0])
-if BLOCK == None:
-    BLOCK = get_group1("b([0-9]{1,3})c[0-9]{2,4}[^0-9]", model_name)
-    if BLOCK == None:
-        # 获取远程文件名
-        response = get_page(model_url, False)
-        content_disposition = response.headers.get('Content-Disposition')
-        if content_disposition:
-            filename = None
-            parts = content_disposition.split(";")
-            for part in parts:
-                if part.strip().startswith('filename='):
-                    filename = part.split('filename=')[-1].strip('"')
-                    try:
-                        filename = filename.encode("iso8859-1").decode("utf-8")
-                    except:
-                        pass
-                    break
-                elif part.strip().startswith('filename*='): #filename*=<charset>'<language>'<encoded-value>
-                    filename = part.split('filename*=')[-1].strip('"')
-                    encoding = filename.split("'")[0] if filename.split("'")[0] else 'utf-8'
-                    filename = unquote(filename.split("'")[-1], encoding=encoding)
-                    break
-            if filename:
-                model_name = filename
-                BLOCK = get_group1("b([0-9]{1,3})c[0-9]{2,4}[^0-9]", model_name)
+model_type = get_group1("(b[0-9]{1,3}c[0-9]{2,4}(?:x[0-9]+)?)", model_name)
+if model_type == None:
+    # 获取远程文件名
+    response = get_page(model_url, False)
+    content_disposition = response.headers.get('Content-Disposition')
+    if content_disposition:
+        filename = None
+        parts = content_disposition.split(";")
+        for part in parts:
+            if part.strip().startswith('filename='):
+                filename = part.split('filename=')[-1].strip('"')
+                try:
+                    filename = filename.encode("iso8859-1").decode("utf-8")
+                except:
+                    pass
+                break
+            elif part.strip().startswith('filename*='): #filename*=<charset>'<language>'<encoded-value>
+                filename = part.split('filename*=')[-1].strip('"')
+                encoding = filename.split("'")[0] if filename.split("'")[0] else 'utf-8'
+                filename = unquote(filename.split("'")[-1], encoding=encoding)
+                break
+        if filename:
+            model_name = filename
+            model_type = get_group1("(b[0-9]{1,3}c[0-9]{2,4}(?:x[0-9]+)?)", model_name)
 print(f"model_name: {model_name}")
-if BLOCK:
-    base_name = f'{BLOCK}b'
+if model_type:
+    base_name = model_type
 else:
     base_name = 'my_model'
 ext = get_group1(r"(bin\.gz|txt\.gz|bin|txt|gz)$", model_name)
@@ -285,18 +274,18 @@ if os.path.isfile(cfg_path) and os.path.isfile("threads.json"):
     try:
         command = 'nvidia-smi --query-gpu=name --format=csv,noheader'
         GPU_NAME = subprocess.check_output(command, shell=True, universal_newlines=True, stderr=subprocess.DEVNULL).strip()
-        GPU_NAME = re.sub(" ", "_", GPU_NAME)
     except:
         GPU_NAME = None
-    PLATFORM = ""
-    if "cloud_studio" in str(os.environ):
-        PLATFORM = "cloud_studio"
-    elif "COLAB" in str(os.environ):
-        PLATFORM = "colab"
     with open("threads.json", "r", encoding="utf-8") as f:
         json_data = json.load(f)
-    THREADS_DICT = json_data.get(f"{PLATFORM}_{GPU_NAME}", {})
-    numThreads = THREADS_DICT.get(f"{KATAGO_BACKEND}_b{BLOCK}")
+    numThreads = 0
+    env_str = str(os.environ)
+    for platform in json_data.keys():
+        if re.search(platform, env_str, re.IGNORECASE):
+            numThreads = json_data[platform].get(GPU_NAME, {}).get(KATAGO_BACKEND, {}).get(model_type)
+            break
     if numThreads:
         _ = os.system(rf'sed -i -E "s/^(numSearchThreads =).*/\1 {numThreads}/" {cfg_path}')
         _ = os.system(f'sed -n "/^numSearchThreads/p" {cfg_path}')
+    else:
+        print('\033[43;1mWARN\033[0m: No matching search threads found. Please modify the search threads manually.')
