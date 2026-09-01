@@ -2,8 +2,7 @@
 
 KATAGO_BACKEND=${1^^}
 WEIGHT_FILE=$2
-USE_HIGHTHREADS=$3
-RELEASE_VERSION=v1.4.0
+RELEASE_VERSION=v1.4.1
 GPU_NAME=`nvidia-smi -q | grep "Product Name" | cut -d":" -f2 | tr -cd '[:alnum:]._-'`
 #GPU_NAME=TeslaT4
 
@@ -29,7 +28,6 @@ if [ -f ./cuda-keyring.deb ]; then
   rm -f cuda-keyring.deb
 fi
 apt-get update -qq -y
-apt-get install -qq -y libzip-dev
 
 mkdir -p /content
 cd /content
@@ -43,9 +41,9 @@ if [[ ! $KATAGO_BACKEND =~ ^TENSORRT$|^CUDA$ ]]; then
   KATAGO_BACKEND="CUDA"
 fi
 if [[ $KATAGO_BACKEND == TENSORRT ]]; then
-  wget -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.17.2/katago-v1.17.2-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
+  wget -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.18.1/katago-v1.18.1-trt10.2.0-cuda12.5-linux-x64.zip" -O ./katago.zip
 elif [[ $KATAGO_BACKEND == CUDA ]]; then
-  wget -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.17.1/katago-v1.17.1-cuda12.5-cudnn9.8.0-linux-x64.zip" -O ./katago.zip
+  wget -T 10 -t 5 "https://github.com/lightvector/KataGo/releases/download/v1.18.2/katago-v1.18.2-cuda12.5-cudnn9.8.0-linux-x64.zip" -O ./katago.zip
 fi
 unzip -od data/bins ./katago.zip
 chmod 755 ./data/bins/katago
@@ -58,17 +56,18 @@ wget --retry-on-http-error=500 -T 10 -t 5 -c -O ./data/weights/human.bin.gz "htt
 
 # install dependencies
 ldconfig &>/dev/null
-if ! ldconfig -p |grep 'libcudnn\.so\.9' &>/dev/null; then
-  apt-get install -y --allow-change-held-packages --allow-downgrades libcudnn9-cuda-12=9.8.0.87-1
-fi
-if ! ldconfig -p |grep 'libcublas\.so\.12' &>/dev/null; then
-  apt-get download -y libcublas-12-5
-  dpkg -x libcublas-12-5*.deb .
-  mv ./usr /
-  rm -f libcublas-12-5*.deb
-  echo '/usr/local/cuda-12.5/lib64' >/etc/ld.so.conf.d/libcublas12.conf
-fi
-if [ "$KATAGO_BACKEND" == "TENSORRT" ]; then
+if [ "$KATAGO_BACKEND" == "CUDA" ]; then
+  if ! ldconfig -p |grep 'libcudnn\.so\.9' &>/dev/null; then
+    apt-get install -y --allow-change-held-packages --allow-downgrades libcudnn9-cuda-12=9.8.0.87-1
+  fi
+  if ! ldconfig -p |grep 'libcublas\.so\.12' &>/dev/null; then
+    apt-get download -y libcublas-12-5
+    dpkg -x libcublas-12-5*.deb .
+    mv ./usr /
+    rm -f libcublas-12-5*.deb
+    echo '/usr/local/cuda-12.5/lib64' >/etc/ld.so.conf.d/libcublas12.conf
+  fi
+elif [ "$KATAGO_BACKEND" == "TENSORRT" ]; then
   if ! ldconfig -p |grep 'libnvinfer\.so\.10' &>/dev/null; then
     wget "https://developer.download.nvidia.cn/compute/cuda/repos/ubuntu2204/x86_64/libnvinfer10_10.2.0.19-1+cuda12.5_amd64.deb" -O libnvinfer10.deb
     wget "https://developer.download.nvidia.cn/compute/cuda/repos/ubuntu2204/x86_64/libnvonnxparsers10_10.2.0.19-1+cuda12.5_amd64.deb" -O libnvonnxparsers10.deb
